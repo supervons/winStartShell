@@ -41,10 +41,10 @@ if (-not (Test-MuMuRunning)) {
         Start-Sleep -Seconds 5
         `$elapsed += 5
         if (Test-MuMuRunning) {
-            Write-Host "[MuMu] 模拟器已启动 (耗时 `$elapsed`s)" -ForegroundColor Green
+            Write-Host "[MuMu] 模拟器已启动 (耗时 `${elapsed}s)" -ForegroundColor Green
             break
         }
-        Write-Host "[MuMu] 等待模拟器启动... `$elapsed`s / `$timeout`s" -ForegroundColor Gray
+        Write-Host "[MuMu] 等待模拟器启动... `${elapsed}s / `${timeout}s" -ForegroundColor Gray
     }
     if (`$elapsed -ge `$timeout) {
         Write-Host '[MuMu] 模拟器启动超时，请检查！' -ForegroundColor Red
@@ -58,6 +58,9 @@ if (-not (Test-MuMuRunning)) {
 Set-Location 'E:\Code\TG\TimeGuard'
 npm run conmumu
 
+# adb connect 后等待连接稳定
+Start-Sleep -Seconds 3
+
 # 等待 adb 设备 online
 Write-Host '[ADB] 等待设备就绪...' -ForegroundColor Yellow
 `$adbTimeout = 60
@@ -67,16 +70,44 @@ while (`$adbElapsed -lt `$adbTimeout) {
     `$adbElapsed += 3
     `$adbStatus = (adb devices 2>&1 | Select-String '127\.0\.0\.1:5555\s+(\S+)').Matches.Groups[1].Value
     if (`$adbStatus -eq 'device') {
-        Write-Host "[ADB] 设备已就绪 (耗时 `$adbElapsed`s)" -ForegroundColor Green
+        Write-Host "[ADB] 设备已就绪 (耗时 `${adbElapsed}s)" -ForegroundColor Green
         break
     }
-    Write-Host "[ADB] 设备未就绪 (状态: `$adbStatus)，等待中... `$adbElapsed`s / `$adbTimeout`s" -ForegroundColor Gray
+    Write-Host "[ADB] 设备未就绪 (状态: `${adbStatus})，等待中... `${adbElapsed}s / `${adbTimeout}s" -ForegroundColor Gray
 }
 if (`$adbElapsed -ge `$adbTimeout) {
     Write-Host '[ADB] 设备就绪超时，尝试继续执行...' -ForegroundColor Red
 }
 
-npm run forward
+# 执行 adb forward，带重试
+`$forwardRetries = 3
+`$forwardOk = `$false
+for (`$i = 1; `$i -le `$forwardRetries; `$i++) {
+    Write-Host "[Forward] 第 `${i} 次执行 adb forward..." -ForegroundColor Yellow
+    `$result = adb -s 127.0.0.1:5555 forward tcp:5554 tcp:5555 2>&1
+    Write-Host "[Forward] 返回: `$result" -ForegroundColor Gray
+    Start-Sleep -Seconds 2
+    # 验证 forward 是否生效
+    try {
+        `$conn = New-Object System.Net.Sockets.TcpClient
+        `$conn.Connect('127.0.0.1', 5554)
+        `$conn.Close()
+        Write-Host '[Forward] 端口转发已生效！' -ForegroundColor Green
+        `$forwardOk = `$true
+        break
+    } catch {
+        Write-Host "[Forward] 端口 5554 仍不可达，重试中..." -ForegroundColor Yellow
+        # 断开重连 adb，解决连接不稳定问题
+        adb disconnect 127.0.0.1:5555 2>&1 | Out-Null
+        Start-Sleep -Seconds 2
+        adb connect 127.0.0.1:5555 2>&1 | Out-Null
+        Start-Sleep -Seconds 3
+    }
+}
+if (-not `$forwardOk) {
+    Write-Host '[Forward] 端口转发最终未成功，尝试继续执行...' -ForegroundColor Red
+}
+
 npm run android
 "@
 [System.IO.File]::WriteAllText($s2, $tab2Content, (New-Object System.Text.UTF8Encoding $false))
