@@ -1,3 +1,3 @@
-Set-Location 'E:\Code\TG'
+Set-Location 'E:\Code\TG\time-guard-serve'
 Start-Sleep 1
-gemini
+npm run stt:ws

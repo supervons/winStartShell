@@ -130,13 +130,13 @@ opencode
 
 # 窗口5：直接启动，不等待
 $tab5Content = @'
-Set-Location 'E:\Code\TG'
+Set-Location 'E:\Code\TG\time-guard-serve'
 Start-Sleep 1
-gemini
+npm run stt:ws
 '@
 [System.IO.File]::WriteAllText($s5, $tab5Content, (New-Object System.Text.UTF8Encoding $false))
 
 # ========== 启动Windows Terminal ==========
 # 通过 cmd /c 调用 wt，避免 PowerShell 把 ; 当作语句分隔符
-$wtCmd = "wt -p ""Windows PowerShell"" --title ""TG-Start"" powershell -NoExit -ExecutionPolicy Bypass -File ""$s1"" ; -p ""Windows PowerShell"" --title ""TimeGuard"" powershell -NoExit -ExecutionPolicy Bypass -File ""$s2"" ; -p ""Windows PowerShell"" --title ""TG"" powershell -NoExit -ExecutionPolicy Bypass -File ""$s3"" ; -p ""Windows PowerShell"" --title ""OpenCode"" powershell -NoExit -ExecutionPolicy Bypass -File ""$s4"" ; -p ""Windows PowerShell"" --title ""Gemini"" powershell -NoExit -ExecutionPolicy Bypass -File ""$s5"""
+$wtCmd = "wt -p ""Windows PowerShell"" --title ""TG-Start"" powershell -NoExit -ExecutionPolicy Bypass -File ""$s1"" ; -p ""Windows PowerShell"" --title ""TimeGuard"" powershell -NoExit -ExecutionPolicy Bypass -File ""$s2"" ; -p ""Windows PowerShell"" --title ""TG"" powershell -NoExit -ExecutionPolicy Bypass -File ""$s3"" ; -p ""Windows PowerShell"" --title ""OpenCode"" powershell -NoExit -ExecutionPolicy Bypass -File ""$s4"" ; -p ""Windows PowerShell"" --title ""STT-WS"" powershell -NoExit -ExecutionPolicy Bypass -File ""$s5"""
 cmd /c $wtCmd
